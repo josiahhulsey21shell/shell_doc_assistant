@@ -43,8 +43,6 @@ def parse_response(query_response):
     embedding, model_output = model_predictions['embedding'], model_predictions['model_output']
     return embedding, model_output
 
-
-
 def embed_question(question):
     '''
     Function that will embed a users question using the USE model 
@@ -55,6 +53,7 @@ def embed_question(question):
     parsed_embedding = parse_response(univ_sen_embedding)
     
     return parsed_embedding
+
 
 
 def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
@@ -120,12 +119,12 @@ def create_chroma_db(path):
 
     return client
 
-def create_collection(client):
+def create_collection(client, collection_name):
     '''
     Function that will create a collection in the given Chroma db.
     '''
     #create the collection
-    collection = client.create_collection(name="fault_seal_collection_try_2")
+    collection = client.create_collection(name=collection_name)
 
     return collection
 

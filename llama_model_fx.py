@@ -4,11 +4,7 @@ import document_processing_fx as dp
 
 def create_prompt(context, question, documents = None):
     '''
-    Function that will create the prompt for llama. This is probably where alot of fine tuning of the prompts can happen.
-    Context = the similair documents
-    question = the users question
-    documents = placeholder
-
+    Context should be fed directly from the similarity search. You deal with the creation of the list here.
     '''
     
     #might be redundant
@@ -29,52 +25,35 @@ def create_prompt(context, question, documents = None):
     {question}
 
     '''
-
+    
     return prompt_guidance
 
 
-def construct_payload_for_llama(prompt, max_tokens = 1000, temperature = .001):
-    '''
-    Used within the ask_llama_a_question function. Its purpose is to construct the prompt into the propper format for the llama model
-    prompt = the prompt constructed by the create_prompt function
-    max_token = the maximum ammount of tokens the response can be
-    temperature = the degree of creativity the model has. Lower = less.
-    '''
-
-
+def construct_payload_for_llama(prompt):
     payload = {
         "inputs": [[
             {"role": "user", "content":  prompt},
         ]],
-        "parameters": {"max_new_tokens": max_tokens, "temperature": temperature}
+        "parameters": {"max_new_tokens": 1000, "temperature": 0.01}
     }
     
     return payload
 
 
 
-def ask_llama_a_question(prompt):
-    '''
-    Function that wil lask llama a question. 
-    Prompt = the prompt constructed by the create_prompt function
-    '''
-    #construct the payload for sending to the model
-    payload = construct_payload_for_llama(prompt)
+def ask_llama_a_question(payload):
 
-    #isntantiate a sagemaker client
     sagemaker = boto3.client('sagemaker-runtime')
 
-    #invoke the endpoint and send the payload to the endpoint
     response = sagemaker.invoke_endpoint(
-    EndpointName="jumpstart-dft-meta-textgeneration-llama-2-7b-f",
-    ContentType = "application/json",
-    Body=json.dumps(payload),
-    CustomAttributes= "accept_eula=true"
+      EndpointName="jumpstart-dft-meta-textgeneration-llama-2-7b-f",
+      ContentType = "application/json",
+      Body=json.dumps(payload),
+      CustomAttributes= "accept_eula=true"
     )
 
-    #read the output 
     output = json.loads(response['Body'].read())
-
+    
     return output
 
 
@@ -97,17 +76,18 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, max_tokens = 1
     '''
 
     context_data = dp.get_similair_documents(chromadb_path, collection_name, question, ndocs)
+    print(context_data)
 
     prompt = create_prompt(context_data["documents"][0], question)
-
-    payload = construct_payload_for_llama(prompt, max_tokens, temperature)
-
+    print(prompt)
+    
+    payload = construct_payload_for_llama(prompt)
+    print(payload)
+    
     output = ask_llama_a_question(payload)
+    print(output)
 
     return output
-
-
-
 
 
 
