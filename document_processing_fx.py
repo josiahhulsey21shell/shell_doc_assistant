@@ -8,6 +8,10 @@ import boto3
 import json
 
 def create_file_list(path, extension = None):
+    '''
+    Function that will create a list of files on aws for the following functions to operate with
+    path = the path to the directory containing the dox
+    '''
 
     if extension:
         file_folder = f"{path}/*{extension}"
@@ -59,6 +63,9 @@ def embed_question(question):
 def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
     '''
     Function that will iterate over a list of file paths for pdfs, load them to memory, chunk them, and then use the USE encoder to retrun the encodings of the chunks.
+    file_list = the list of files to process.
+    chunk_size = the chunk size you will break the documents into
+    chunk_overlap = the ammount of overlap between chunks.
 
     At the moment only works for PDFS!!!
 
@@ -114,6 +121,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
 def create_chroma_db(path):
     '''
     Function that will create a chroma db whereever you provide a path to. MAKE SURE YOU ARE CONSISTANT WITH YOUR PATH CALLS
+    path = the path you want to store the db at
     '''
     client = chromadb.PersistentClient(path=path)
 
@@ -122,6 +130,9 @@ def create_chroma_db(path):
 def create_collection(client, collection_name):
     '''
     Function that will create a collection in the given Chroma db.
+    client = the chromadb
+    collection_name = the name you want to give the new colleciton
+
     '''
     #create the collection
     collection = client.create_collection(name=collection_name)
@@ -130,7 +141,13 @@ def create_collection(client, collection_name):
 
 def add_data_to_collection(collection, chunked_docs, ids, embeddings):
     ''' 
-    formatted to take the results of the chunk_and_embed_documents function and store it in the given collection
+    formatted to take the results of the chunk_and_embed_documents function and store it in the given collection. IF YOU
+    ARE ADDING DATA TO A CURRENT COLLECTION YOU NEED TO MAKE SURE THAT YOUR IDS DONT OVERWRITE THE ONES ALLREADY THERE!!
+
+    collection = the collection to add the data to
+    chunked_docs = the chunked documents from the chunk_and_embed_documents fx. 
+    ids = the ids from the chunk_and_embed_documents fx. 
+    embeddings = the embeddings from the  chunk_and_embed_documents fx. 
     
     '''
     #add the documents and ids and embeddings to the db
@@ -140,6 +157,7 @@ def add_data_to_collection(collection, chunked_docs, ids, embeddings):
 def load_chroma_db(path):
     '''
     Function that will load a chroma db from disk. MAKE SURE YOU ARE CONSISTANT WITH YOUR PATH CALLS
+    path = path to your chroma db. On aws its llama_work. You have to be in the root directory for this to work!!!!
     '''
     client = chromadb.PersistentClient(path=path)
 

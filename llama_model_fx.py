@@ -4,7 +4,11 @@ import document_processing_fx as dp
 
 def create_prompt(context, question, documents = None):
     '''
-    Context should be fed directly from the similarity search. You deal with the creation of the list here.
+    Function that will create the prompt to be sent to LLama. This will add in all the context and other instructions for the model. You should probably make different flavors of these!!
+
+    Context should be fed directly from the similarity_search_fx.
+    quetion = the question to be asked   
+        
     '''
     
     #might be redundant
@@ -30,6 +34,11 @@ def create_prompt(context, question, documents = None):
 
 
 def construct_payload_for_llama(prompt):
+    '''
+    Constructs the payload to send to LLama
+    prompt = the prompt that was constructed by whichever create_prompt fx you chose
+    '''
+
     payload = {
         "inputs": [[
             {"role": "user", "content":  prompt},
@@ -42,6 +51,10 @@ def construct_payload_for_llama(prompt):
 
 
 def ask_llama_a_question(payload):
+    '''
+    Constructs the payload to send to LLama
+    payload = the payload constructed by the construct_payload_for_llama fx
+    '''
 
     sagemaker = boto3.client('sagemaker-runtime')
 
@@ -70,22 +83,18 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, max_tokens = 1
     collection_name = the name of your collection with your dox and embeddings
     question = the question the user has asked
     ndocs = the number of similair documents you want returned
-    max_tokens = the maximum number of tokens the model gets to answer the question
-    temperature = how creative the model can be. Lower = less.
+    # max_tokens = NOT IMPLEMENTED the maximum number of tokens the model gets to answer the question
+    # temperature = NOT IMPLEMENTED how creative the model can be. Lower = less.
 
     '''
 
     context_data = dp.get_similair_documents(chromadb_path, collection_name, question, ndocs)
-    print(context_data)
 
     prompt = create_prompt(context_data["documents"][0], question)
-    print(prompt)
-    
+
     payload = construct_payload_for_llama(prompt)
-    print(payload)
-    
+
     output = ask_llama_a_question(payload)
-    print(output)
 
     return output
 
