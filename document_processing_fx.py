@@ -1,5 +1,6 @@
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.document_loaders import UnstructuredPowerPointLoader
 
 import chromadb
 import tqdm
@@ -67,7 +68,9 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
     chunk_size = the chunk size you will break the documents into
     chunk_overlap = the ammount of overlap between chunks.
 
-    At the moment only works for PDFS!!!
+    This handles pdfs or ppts. 
+    At the moment there is some odd behavior with ppts where sometimes a "package not found" error occurs. Have not been able to figure out the problem, so sometimes ppts fail. Only noticed this with rowans ppts. Maybe
+    there are videos in some of them that mess things up?
 
     '''
     #lists that the relevant data will be appended to in the workflow
@@ -82,37 +85,77 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
     counter = 0
     #iterate over each file in the file list
     for i in tqdm.tqdm(file_list):
-        #open the pdf
-        loader = PyPDFLoader(i)
         
-        #put this in a try statement because there were some bad files that came through and were causing failures here
-        try:
-            #load the pages and split them into individual documents
-            pages = loader.load_and_split()
+        
+        # if the file extension is .pptx or .ppt process it accordingly
+        if i[-4:] =="pptx" or i[-3:] =="ppt":
             
-            #iterate over each page and chunk it
-            for p in pages:
-                #chunk the page
-                chunks = splitter.split_text(p.page_content)
+            loader = UnstructuredPowerPointLoader(i)
 
-                #iterate over each chunk and embed the chunk using the USE encoder
-                for c in chunks:
-                    #increase doc id count
-                    counter = counter + 1
+            try:
+                #load the pages and split them into individual documents
+                data = loader.load()
 
-                    #append doc id and chunk to the output lists
-                    ids.append(f'id{counter}')
-                    chunk_docs.append(c)
+                #iterate over each page and chunk it
+                for p in data:
+                    #chunk the page
+                    chunks = splitter.split_text(p.page_content)
 
-                    #embed the chunk
-                    query_response = query_endpoint(c.encode('utf-8'))
-                    parsed_response  =  parse_response(query_response)
-                    #comes back as a tuple. Need the first element of it.
-                    embeddings.append(parsed_response[0])
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        query_response = query_endpoint(c.encode('utf-8'))
+                        parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append(parsed_response[0])
+                    
+            except:
+                print(f"Error processing PowperPoint {i}")
+                next       
+
+        
+        #if the document is a pdf process it accordingly
+        elif i[-3:] == "pdf":
+        
+    
+            #open the pdf
+            loader = PyPDFLoader(i)
+            
+            #put this in a try statement because there were some bad files that came through and were causing failures here
+            try:
+                #load the pages and split them into individual documents
+                pages = loader.load_and_split()
                 
-        except:
-            print(f"Error Splitting Pages for {i}")
-            next
+                #iterate over each page and chunk it
+                for p in pages:
+                    #chunk the page
+                    chunks = splitter.split_text(p.page_content)
+
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        query_response = query_endpoint(c.encode('utf-8'))
+                        parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append(parsed_response[0])
+                    
+            except:
+                print(f"Error Processing pdf {i}")
+                next
     
 
     return [ids,chunk_docs,embeddings]
