@@ -19,7 +19,8 @@ def create_prompt(context, question, documents = None):
 
 
     prompt_guidance = f'''
-    You are going to be asked a geological question by a user. You are to respond using the context below and your own knowledge. If you are unsure of your answer, do not make anything up. Just return back that you are unsure. Do not thank the user
+    You are going to be asked a geological question by a user. You will be provided context from acadmic papers on geology and geophyics. You are to respond using the context below and your own knowledge. 
+    If you are unsure of your answer, do not make anything up. Just return back that you are unsure. Do not thank the user
     for providing context. Just give your answer.
 
     Here is some context for the question in the form of a python list
@@ -31,6 +32,69 @@ def create_prompt(context, question, documents = None):
     '''
     
     return prompt_guidance
+
+
+def create_gg_prompt(context, question, documents = None):
+    '''
+    Function that will create the prompt to be sent to LLama. This will add in all the context and other instructions for the model. You should probably make different flavors of these!!
+
+    Context should be fed directly from the similarity_search_fx.
+    quetion = the question to be asked   
+        
+    '''
+    
+    #might be redundant
+    context_list = []
+    for i in context:
+        context_list.append(i)
+    
+
+
+    prompt_guidance = f'''
+    You are going to be asked geological and geophysical question by a user. You will be provided context from acadmic papers on geology and geophyics. You are to respond using the context below and your own knowledge. 
+    If you are unsure of your answer, do not make anything up. Just return back that you are unsure. Do not thank the user
+    for providing context. Just give your answer.
+
+    Here is some context for the question in the form of a python list
+    {context_list}
+
+    the users question is below:
+    {question}
+
+    '''
+    
+    return prompt_guidance
+
+
+def create_wells_prompt(context, question, documents = None):
+    
+    '''
+    Function that will create a prompt designed to ask questions about wells for LLama. This will add in all the context and other instructions for the model. 
+
+    Context should be fed directly from the similarity_search_fx.
+    quetion = the question to be asked   
+        
+    '''
+    #might be redundant
+    context_list = []
+    for i in context:
+        context_list.append(i)
+    
+
+
+    prompt_guidance = f'''
+    You are going to be asked questions about oil and gas wells.  You will be given reports about the wells to give you context. You are to respond using the context below. If you are unsure of your answer, do not make anything up. 
+    Just return back that you are unsure. Do not thank the user for providing context. Just give your answer.
+
+    Here is some context for the question in the form of a python list
+    {context_list}
+
+    the users question is below:
+    {question}
+
+    '''
+
+
 
 
 def construct_payload_for_llama(prompt):
@@ -74,7 +138,7 @@ def ask_llama_a_question(payload):
 
 
 
-def uaq_workflow(chromadb_path, collection_name, question, ndocs, max_tokens = 1000, temperature = .001):
+def uaq_workflow(chromadb_path, collection_name, question, ndocs, prompt_type ="gg", max_tokens = 1000, temperature = .001):
     '''
     User Asks Question Workflow
     Workflow that will take a users question all the way through the process and get an answer. You need to have created a chromadb and collection with embeddings to be able to use this function!!!!
@@ -83,6 +147,7 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, max_tokens = 1
     collection_name = the name of your collection with your dox and embeddings
     question = the question the user has asked
     ndocs = the number of similair documents you want returned
+    prompt type will tell the function which prompt building function to use. The options are gg and well at this point. gg is for a geology and geophysics question. wells is for a wells related question.
     # max_tokens = NOT IMPLEMENTED the maximum number of tokens the model gets to answer the question
     # temperature = NOT IMPLEMENTED how creative the model can be. Lower = less.
 
@@ -90,7 +155,15 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, max_tokens = 1
 
     context_data = dp.get_similair_documents(chromadb_path, collection_name, question, ndocs)
 
-    prompt = create_prompt(context_data["documents"][0], question)
+    #if the question is a geology prompt, build the geological prompt
+    if prompt_type == "gg":
+        prompt = create_gg_prompt(context_data["documents"][0], question)
+    # if the question is a wells related question, build a wells related prompt
+    elif prompt_type == "well":
+        prompt = create_wells_prompt(context_data["documents"][0], question)
+
+    else:
+        prompt = create_prompt(context_data["documents"][0], question)
 
     payload = construct_payload_for_llama(prompt)
 

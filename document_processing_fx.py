@@ -77,6 +77,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
     ids = []
     chunk_docs = []
     embeddings = []
+    metadatas = []
 
     #make an instance of the recursive splitter with the given chunk size and chunk overlap.
     splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -98,6 +99,9 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
 
                 #iterate over each page and chunk it
                 for p in data:
+                    #get meta data
+                    md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+
                     #chunk the page
 
                     #step that strips out all the extra spaces that come into the ppt
@@ -121,6 +125,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                         parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append(parsed_response[0])
+                        metadatas.append(md)
                     
             except:
                 print(f"Error processing PowperPoint {i}")
@@ -141,6 +146,9 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                 
                 #iterate over each page and chunk it
                 for p in pages:
+                    #get metadata
+                    md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+
                     #chunk the page
                     chunks = splitter.split_text(p.page_content)
 
@@ -158,10 +166,15 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                         parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append(parsed_response[0])
+                        metadatas.append(md)
                     
             except:
                 print(f"Error Processing pdf {i}")
                 next
+        #if its not one of those file extensions, go to the next file
+        else:
+            print(f"{i} is not a ppt or pdf. Skipping to next file")
+            next
     
 
     return [ids,chunk_docs,embeddings]
@@ -188,7 +201,7 @@ def create_collection(client, collection_name):
 
     return collection
 
-def add_data_to_collection(collection, chunked_docs, ids, embeddings):
+def add_data_to_collection(collection, chunked_docs, ids, embeddings, metadatas):
     ''' 
     formatted to take the results of the chunk_and_embed_documents function and store it in the given collection. IF YOU
     ARE ADDING DATA TO A CURRENT COLLECTION YOU NEED TO MAKE SURE THAT YOUR IDS DONT OVERWRITE THE ONES ALLREADY THERE!!
@@ -200,7 +213,7 @@ def add_data_to_collection(collection, chunked_docs, ids, embeddings):
     
     '''
     #add the documents and ids and embeddings to the db
-    collection.add(documents = chunked_docs, ids = ids, embeddings = embeddings)    
+    collection.add(documents = chunked_docs, ids = ids, embeddings = embeddings, metadatas = metadatas)    
 
 
 def load_chroma_db(path):
@@ -240,3 +253,186 @@ def get_similair_documents(chromadb_path, collection_name, question, ndocs):
     return sim_dox
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+def chunk_and_embed_documents_local(file_list, chunk_size= 500, chunk_overlap= 25):
+    '''
+    ONLY FOR USE ON LOCAL COMPUTER. WILL NOT ACTUALLY EMBED FILES. GIVES A DUMMY EMBEDDING SO THAT YOU CAN TRY OUT DIFFERENT CONFIGURATIONS ON THE CHUNKING!!
+    Function that will iterate over a list of file paths for pdfs, load them to memory, chunk them, and then use the USE encoder to retrun the encodings of the chunks.
+    file_list = the list of files to process.
+    chunk_size = the chunk size you will break the documents into
+    chunk_overlap = the ammount of overlap between chunks.
+
+    This handles pdfs or ppts. 
+    At the moment there is some odd behavior with ppts where sometimes a "package not found" error occurs. Have not been able to figure out the problem, so sometimes ppts fail. Only noticed this with rowans ppts. Maybe
+    there are videos in some of them that mess things up?
+
+    '''
+    #lists that the relevant data will be appended to in the workflow
+    ids = []
+    chunk_docs = []
+    embeddings = []
+    metadatas = []
+
+    #make an instance of the recursive splitter with the given chunk size and chunk overlap.
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+    #start a counter for use in the doc id for chroma
+    counter = 0
+    #iterate over each file in the file list
+    for i in tqdm.tqdm(file_list):
+        
+        
+        # if the file extension is .pptx or .ppt process it accordingly
+        if i[-4:] =="pptx" or i[-3:] =="ppt":
+            
+            loader = UnstructuredPowerPointLoader(i)
+
+            try:
+                #load the pages and split them into individual documents
+                data = loader.load()
+
+                #iterate over each page and chunk it
+                for p in data:
+                    # metadata
+                    md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
+                    
+
+
+                    #chunk the page
+
+                    #step that strips out all the extra spaces that come into the ppt
+                    clean_data = ' '.join(p.page_content.split())
+                    #old way
+                    # chunks = splitter.split_text(p.page_content)
+                    #chunk the extra space free data
+                    chunks = splitter.split_text(clean_data)
+
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        # query_response = query_endpoint(c.encode('utf-8'))
+                        # parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append([10,10,10])
+                        metadatas.append(md)
+                    
+            except:
+                print(f"Error processing PowperPoint {i}")
+                next       
+
+        
+        #if the document is a pdf process it accordingly
+        elif i[-3:] == "pdf":
+        
+    
+            #open the pdf
+            loader = PyPDFLoader(i)
+            
+            #put this in a try statement because there were some bad files that came through and were causing failures here
+            try:
+                #load the pages and split them into individual documents
+                pages = loader.load_and_split()
+                
+                #iterate over each page and chunk it
+                for p in pages:
+                
+                #metadata
+                    md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
+
+                    #chunk the page
+                    chunks = splitter.split_text(p.page_content)
+
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        # query_response = query_endpoint(c.encode('utf-8'))
+                        # parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append([10,10,10])
+                        metadatas.append(md)
+                        
+            except:
+                print(f"Error Processing pdf {i}")
+                next
+        #if its not one of those file extensions, go to the next file
+        else:
+            print(f"{i} is not a ppt or pdf. Skipping to next file")
+            next
+    
+
+    return [ids,chunk_docs,embeddings,metadatas]
+
+
+
+
+def get_similair_documents_local(chromadb_path, collection_name, question, ndocs):
+    '''
+    Function that will return N ammount of similair documents from the current collection
+    chromadb_path = path to your chroma db
+    collection name = name of the collection you are pulling from
+    question = the question that will be asked
+    ndocs = number of similair documents to return
+
+
+    '''
+    #embed the users question using the USE endpoint
+    user_question_emb = [10, 10, 10]
+
+    #connect to the db
+    client = chromadb.PersistentClient(path=chromadb_path)
+    #connect to the collection
+    collection = client.get_collection(collection_name)
+
+    #find the most alike documents
+    sim_dox = collection.query(
+        #return the first element from this function 
+        query_embeddings = user_question_emb ,
+        n_results = ndocs)
+   
+
+
+
+    return sim_dox
+
+
+
+
+
+def add_data_to_collection(collection, chunked_docs, ids, embeddings, metadatas):
+    ''' 
+    formatted to take the results of the chunk_and_embed_documents function and store it in the given collection. IF YOU
+    ARE ADDING DATA TO A CURRENT COLLECTION YOU NEED TO MAKE SURE THAT YOUR IDS DONT OVERWRITE THE ONES ALLREADY THERE!!
+
+    collection = the collection to add the data to
+    chunked_docs = the chunked documents from the chunk_and_embed_documents fx. 
+    ids = the ids from the chunk_and_embed_documents fx. 
+    embeddings = the embeddings from the  chunk_and_embed_documents fx. 
+    
+    '''
+    #add the documents and ids and embeddings to the db
+    collection.add(documents = chunked_docs, ids = ids, embeddings = embeddings, metadatas = metadatas)
