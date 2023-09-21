@@ -99,7 +99,13 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                 #iterate over each page and chunk it
                 for p in data:
                     #chunk the page
-                    chunks = splitter.split_text(p.page_content)
+
+                    #step that strips out all the extra spaces that come into the ppt
+                    clean_data = ' '.join(p.page_content.split())
+                    #old way
+                    # chunks = splitter.split_text(p.page_content)
+                    #chunk the extra space free data
+                    chunks = splitter.split_text(clean_data)
 
                     #iterate over each chunk and embed the chunk using the USE encoder
                     for c in chunks:
