@@ -182,6 +182,137 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
     return [ids,chunk_docs,embeddings,metadatas]
 
 
+
+
+def chunk_and_embed_well_documents(file_list, chunk_size= 500, chunk_overlap= 25, separator ="-"):
+    '''
+    Function that will iterate over a list of file paths for pdfs, load them to memory, chunk them, and then use the USE encoder to retrun the encodings of the chunks.
+    file_list = the list of files to process.
+    chunk_size = the chunk size you will break the documents into
+    chunk_overlap = the ammount of overlap between chunks.
+
+    This handles pdfs or ppts. 
+    At the moment there is some odd behavior with ppts where sometimes a "package not found" error occurs. Have not been able to figure out the problem, so sometimes ppts fail. Only noticed this with rowans ppts. Maybe
+    there are videos in some of them that mess things up?
+
+    '''
+    #lists that the relevant data will be appended to in the workflow
+    ids = []
+    chunk_docs = []
+    embeddings = []
+    metadatas = []
+
+    #make an instance of the recursive splitter with the given chunk size and chunk overlap.
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+    #start a counter for use in the doc id for chroma
+    counter = 0
+    #iterate over each file in the file list
+    for i in tqdm.tqdm(file_list):
+
+        well_name = i.split(separator)["-1"].strip()
+        
+        
+        # if the file extension is .pptx or .ppt process it accordingly
+        if i[-4:] =="pptx" or i[-3:] =="ppt":
+            
+            loader = UnstructuredPowerPointLoader(i)
+
+            try:
+                #load the pages and split them into individual documents
+                data = loader.load()
+
+                #iterate over each page and chunk it
+                for p in data:
+                    #get meta data
+                    # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+
+                    #chunk the page
+
+                    #step that strips out all the extra spaces that come into the ppt
+                    clean_data = ' '.join(p.page_content.split())
+                    #old way
+                    # chunks = splitter.split_text(p.page_content)
+                    #chunk the extra space free data
+                    chunks = splitter.split_text(clean_data)
+
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+
+                        c = c + f" This document is about {well_name}."
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        query_response = query_endpoint(c.encode('utf-8'))
+                        parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append(parsed_response[0])
+                        metadatas.append(meta_dict)
+                    
+            except:
+                print(f"Error processing PowperPoint {i}")
+                next       
+
+        
+        #if the document is a pdf process it accordingly
+        elif i[-3:] == "pdf":
+        
+    
+            #open the pdf
+            loader = PyPDFLoader(i)
+            
+            #put this in a try statement because there were some bad files that came through and were causing failures here
+            try:
+                #load the pages and split them into individual documents
+                pages = loader.load_and_split()
+                
+                #iterate over each page and chunk it
+                for p in pages:
+                    #get metadata
+                    # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+
+                    #chunk the page
+                    chunks = splitter.split_text(p.page_content)
+
+                    #iterate over each chunk and embed the chunk using the USE encoder
+                    for c in chunks:
+                        #increase doc id count
+                        counter = counter + 1
+                        
+                        c = c + f" This document is about {well_name}."
+
+                        #append doc id and chunk to the output lists
+                        ids.append(f'id{counter}')
+                        chunk_docs.append(c)
+
+                        #embed the chunk
+                        query_response = query_endpoint(c.encode('utf-8'))
+                        parsed_response  =  parse_response(query_response)
+                        #comes back as a tuple. Need the first element of it.
+                        embeddings.append(parsed_response[0])
+                        metadatas.append(meta_dict)
+                    
+            except:
+                print(f"Error Processing pdf {i}")
+                next
+        #if its not one of those file extensions, go to the next file
+        else:
+            print(f"{i} is not a ppt or pdf. Skipping to next file")
+            next
+    
+
+    return [ids,chunk_docs,embeddings,metadatas]
+
+
+
+
 def create_chroma_db(path):
     '''
     Function that will create a chroma db whereever you provide a path to. MAKE SURE YOU ARE CONSISTANT WITH YOUR PATH CALLS

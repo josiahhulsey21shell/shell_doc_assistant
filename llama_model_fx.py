@@ -1,6 +1,28 @@
 import boto3
 import json
 import document_processing_fx as dp
+import re
+
+
+def trim_well_tag(input_string):
+    '''
+    Function that will trim the well tag out of returned chunk
+    input_string = the returned chunk
+    '''
+
+    input_string = "This document is about Erebus. There could be lots of text after well_name, and we want to keep it. This document is about Erebus."
+
+    # Define the regular expression pattern to match the entire sentence
+    pattern = r"This document is about .*?\.(\s|$)"
+
+    # Use re.sub with the re.MULTILINE flag to remove all instances
+    result = re.sub(pattern, "", input_string, flags=re.MULTILINE)
+
+    return result
+
+
+
+
 
 def create_prompt(context, question, documents = None):
     '''
@@ -113,6 +135,11 @@ def create_wells_prompt(context, question, documents = None):
         
     '''
 
+    #add in logic to remove the "this document belongs to ____ well"
+
+    # This document is about {well_name}
+
+
     sources_string = ""
 
 
@@ -122,6 +149,10 @@ def create_wells_prompt(context, question, documents = None):
             
         # Add a new line between dictionary entries
         sources_string += "\n"  
+
+    #get rid of the well identification tags.
+    sources_string = trim_well_tag(sources_string)
+
 
 
     #might be redundant
@@ -147,6 +178,7 @@ def create_wells_prompt(context, question, documents = None):
     {question}
 
     '''
+    return prompt_guidance
 
 
 
