@@ -100,7 +100,8 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                 #iterate over each page and chunk it
                 for p in data:
                     #get meta data
-                    md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
 
                     #chunk the page
 
@@ -125,7 +126,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                         parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append(parsed_response[0])
-                        metadatas.append(md)
+                        metadatas.append(meta_dict)
                     
             except:
                 print(f"Error processing PowperPoint {i}")
@@ -147,7 +148,8 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                 #iterate over each page and chunk it
                 for p in pages:
                     #get metadata
-                    md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
 
                     #chunk the page
                     chunks = splitter.split_text(p.page_content)
@@ -166,7 +168,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                         parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append(parsed_response[0])
-                        metadatas.append(md)
+                        metadatas.append(meta_dict)
                     
             except:
                 print(f"Error Processing pdf {i}")
@@ -177,7 +179,7 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
             next
     
 
-    return [ids,chunk_docs,embeddings]
+    return [ids,chunk_docs,embeddings,metadatas]
 
 
 def create_chroma_db(path):
@@ -259,6 +261,8 @@ def get_similair_documents(chromadb_path, collection_name, question, ndocs):
 
 
 
+##################################################################################################################################################################################################################################################################
+# local version
 
 
 
@@ -305,8 +309,8 @@ def chunk_and_embed_documents_local(file_list, chunk_size= 500, chunk_overlap= 2
                 #iterate over each page and chunk it
                 for p in data:
                     # metadata
-                    md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
-                    
+                    # md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("\\")[-1], "page":str(p.metadata["page"])}
 
 
                     #chunk the page
@@ -332,7 +336,7 @@ def chunk_and_embed_documents_local(file_list, chunk_size= 500, chunk_overlap= 2
                         # parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append([10,10,10])
-                        metadatas.append(md)
+                        metadatas.append(meta_dict)
                     
             except:
                 print(f"Error processing PowperPoint {i}")
@@ -355,7 +359,8 @@ def chunk_and_embed_documents_local(file_list, chunk_size= 500, chunk_overlap= 2
                 for p in pages:
                 
                 #metadata
-                    md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
+                    # md = p.metadata["source"].split("\\")[-1] + " " + "page:" + str(p.metadata["page"])
+                    meta_dict = {"paper":p.metadata["source"].split("\\")[-1], "page":str(p.metadata["page"])}
 
                     #chunk the page
                     chunks = splitter.split_text(p.page_content)
@@ -374,7 +379,7 @@ def chunk_and_embed_documents_local(file_list, chunk_size= 500, chunk_overlap= 2
                         # parsed_response  =  parse_response(query_response)
                         #comes back as a tuple. Need the first element of it.
                         embeddings.append([10,10,10])
-                        metadatas.append(md)
+                        metadatas.append(meta_dict)
                         
             except:
                 print(f"Error Processing pdf {i}")

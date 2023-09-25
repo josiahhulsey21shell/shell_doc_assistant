@@ -26,8 +26,18 @@ def create_prompt(context, question, documents = None):
     Here is some context for the question in the form of a python list
     {context_list}
 
+    
+    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
+    The list of dictionaries that contain the context documents is below
+    {documents}
+    
+    
     the users question is below:
     {question}
+
+    
+
+
 
     '''
     
@@ -57,6 +67,12 @@ def create_gg_prompt(context, question, documents = None):
 
     Here is some context for the question in the form of a python list
     {context_list}
+
+
+    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
+    The list of dictionaries that contain the context documents is below
+    {documents}
+    
 
     the users question is below:
     {question}
@@ -88,6 +104,12 @@ def create_wells_prompt(context, question, documents = None):
 
     Here is some context for the question in the form of a python list
     {context_list}
+
+    
+    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
+    The list of dictionaries that contain the context documents is below
+    {documents}
+    
 
     the users question is below:
     {question}
@@ -157,13 +179,13 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, prompt_type ="
 
     #if the question is a geology prompt, build the geological prompt
     if prompt_type == "gg":
-        prompt = create_gg_prompt(context_data["documents"][0], question)
+        prompt = create_gg_prompt(context_data["documents"][0], question, context_data["documents"][0])
     # if the question is a wells related question, build a wells related prompt
     elif prompt_type == "well":
-        prompt = create_wells_prompt(context_data["documents"][0], question)
+        prompt = create_wells_prompt(context_data["documents"][0], question, context_data["documents"][0])
 
     else:
-        prompt = create_prompt(context_data["documents"][0], question)
+        prompt = create_prompt(context_data["documents"][0], question, context_data["documents"][0])
 
     payload = construct_payload_for_llama(prompt)
 
