@@ -10,6 +10,17 @@ def create_prompt(context, question, documents = None):
     quetion = the question to be asked   
         
     '''
+    sources_string = ""
+
+   
+    for i in documents:
+        for key, value in i.items():
+            sources_string += f"{key}: {value} "
+            
+        # Add a new line between dictionary entries
+        sources_string += "\n"  
+
+
     
     #might be redundant
     context_list = []
@@ -27,9 +38,8 @@ def create_prompt(context, question, documents = None):
     {context_list}
 
     
-    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
-    The list of dictionaries that contain the context documents is below
-    {documents}
+    At the end of your answer please print out the string below with the title "Context Documents". Do not add anything to this string. Simply print it out.
+    {sources_string}
     
     
     the users question is below:
@@ -45,6 +55,7 @@ def create_prompt(context, question, documents = None):
 
 
 def create_gg_prompt(context, question, documents = None):
+    
     '''
     Function that will create the prompt to be sent to LLama. This will add in all the context and other instructions for the model. You should probably make different flavors of these!!
 
@@ -52,6 +63,17 @@ def create_gg_prompt(context, question, documents = None):
     quetion = the question to be asked   
         
     '''
+    sources_string = ""
+
+
+    for i in documents:
+        for key, value in i.items():
+            sources_string += f"{key}: {value} "
+            
+        # Add a new line between dictionary entries
+        sources_string += "\n"  
+
+
     
     #might be redundant
     context_list = []
@@ -69,9 +91,8 @@ def create_gg_prompt(context, question, documents = None):
     {context_list}
 
 
-    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
-    The list of dictionaries that contain the context documents is below
-    {documents}
+    At the end of your answer please print out the string below with the title "Context Documents". Do not add anything to this string. Simply print it out.
+    {sources_string}
     
 
     the users question is below:
@@ -91,6 +112,18 @@ def create_wells_prompt(context, question, documents = None):
     quetion = the question to be asked   
         
     '''
+
+    sources_string = ""
+
+
+    for i in documents:
+        for key, value in i.items():
+            sources_string += f"{key}: {value} "
+            
+        # Add a new line between dictionary entries
+        sources_string += "\n"  
+
+
     #might be redundant
     context_list = []
     for i in context:
@@ -106,9 +139,8 @@ def create_wells_prompt(context, question, documents = None):
     {context_list}
 
     
-    After your answer please list out the documents that were provided to you for context. They will be given to you in the form of a list of python dictionaries. Print each source on a new line.
-    The list of dictionaries that contain the context documents is below
-    {documents}
+    At the end of your answer please print out the string below with the title "Context Documents". Do not add anything to this string. Simply print it out.
+    {sources_string}
     
 
     the users question is below:
@@ -179,13 +211,13 @@ def uaq_workflow(chromadb_path, collection_name, question, ndocs, prompt_type ="
 
     #if the question is a geology prompt, build the geological prompt
     if prompt_type == "gg":
-        prompt = create_gg_prompt(context_data["documents"][0], question, context_data["documents"][0])
+        prompt = create_gg_prompt(context_data["documents"][0], question, context_data["metadatas"][0])
     # if the question is a wells related question, build a wells related prompt
     elif prompt_type == "well":
-        prompt = create_wells_prompt(context_data["documents"][0], question, context_data["documents"][0])
+        prompt = create_wells_prompt(context_data["documents"][0], question, context_data["metadatas"][0])
 
     else:
-        prompt = create_prompt(context_data["documents"][0], question, context_data["documents"][0])
+        prompt = create_prompt(context_data["documents"][0], question, context_data["metadatas"][0])
 
     payload = construct_payload_for_llama(prompt)
 
