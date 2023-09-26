@@ -101,7 +101,10 @@ def chunk_and_embed_documents(file_list, chunk_size= 500, chunk_overlap= 25):
                 for p in data:
                     #get meta data
                     # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
-                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+                    # meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+
+                    #there are no page numbers given in the meta data for ppts. You were lazy and just hardcoded in page 1 so you wouldnt have to rewrite.
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":1}
 
                     #chunk the page
 
@@ -210,7 +213,7 @@ def chunk_and_embed_well_documents(file_list, chunk_size= 500, chunk_overlap= 25
     #iterate over each file in the file list
     for i in tqdm.tqdm(file_list):
 
-        well_name = i.split(separator)["-1"].strip()
+        well_name = i.split(separator)[-1].strip()
         
         
         # if the file extension is .pptx or .ppt process it accordingly
@@ -226,7 +229,10 @@ def chunk_and_embed_well_documents(file_list, chunk_size= 500, chunk_overlap= 25
                 for p in data:
                     #get meta data
                     # md = p.metadata["source"].split("/")[-1] + " " + "page:" + str(p.metadata["page"])
-                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+                    # meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":str(p.metadata["page"])}
+                    
+                    #there are no page numbers given in the meta data for ppts. You were lazy and just hardcoded in page 1 so you wouldnt have to rewrite.
+                    meta_dict = {"paper":p.metadata["source"].split("/")[-1], "page":1}
 
                     #chunk the page
 

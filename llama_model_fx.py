@@ -10,8 +10,6 @@ def trim_well_tag(input_string):
     input_string = the returned chunk
     '''
 
-    input_string = "This document is about Erebus. There could be lots of text after well_name, and we want to keep it. This document is about Erebus."
-
     # Define the regular expression pattern to match the entire sentence
     pattern = r"This document is about .*?\.(\s|$)"
 
@@ -150,15 +148,15 @@ def create_wells_prompt(context, question, documents = None):
         # Add a new line between dictionary entries
         sources_string += "\n"  
 
-    #get rid of the well identification tags.
-    sources_string = trim_well_tag(sources_string)
 
 
 
-    #might be redundant
+    #might be redundant. not redundant here because you need tp cllean the tags out
     context_list = []
     for i in context:
-        context_list.append(i)
+        #clean the tags out
+        i_cleaned =  trim_well_tag(i)
+        context_list.append(i_cleaned)
     
 
 
